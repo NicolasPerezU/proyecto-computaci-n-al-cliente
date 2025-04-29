@@ -41,8 +41,7 @@ function Inicio() {
                     </p>
                     
                 </div>
-            </div>
-
+            </div> 
             {/* MENÚ*/}
 
             <section id="menu" className="py-16 bg-gray-950">

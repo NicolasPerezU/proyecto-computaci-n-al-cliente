@@ -6,9 +6,9 @@ const router = express.Router();
 
 
 router.post('/register', async (req, res) => {
-  const { nombres, apellidos, email, contraseña } = req.body;
+  const { nombres, apellidos, email, password } = req.body;
 
-  if (!nombres || !apellidos || !email || !contraseña) {
+  if (!nombres || !apellidos || !email || !password) {
     return res.status(400).json({ error: 'Todos los campos son requeridos.' });
   }
 
@@ -18,7 +18,7 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'El email ya está registrado.' });
     }
 
-    const hashedPassword = await bcrypt.hash(contraseña, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = new User({
       nombres,
@@ -41,10 +41,10 @@ const jwt = require('jsonwebtoken');
 
 
 router.post('/login', async (req, res) => {
-  const { email, contraseña } = req.body;
+  const { email, password } = req.body;
 
   
-  if (!email || !contraseña) {
+  if (!email || !password) {
     return res.status(400).json({ error: 'Email y contraseña son requeridos.' });
   }
 
@@ -56,7 +56,7 @@ router.post('/login', async (req, res) => {
     }
 
     
-    const isMatch = await bcrypt.compare(contraseña, user.password);
+    const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ error: 'Credenciales inválidas.' });
     }

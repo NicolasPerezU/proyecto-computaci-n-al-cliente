@@ -1,26 +1,26 @@
 const mongoose = require('mongoose');
 
-const PromocionSchema = new mongoose.Schema({
-  titulo: {
-    type: String,
-    required: true
-  },
-  descripcion: {
-    type: String,
-    required: true
-  },
-  fechaInicio: {
-    type: Date,
-    required: true
-  },
-  fechaFin: {
-    type: Date,
-    required: true
-  },
-  descuento: {
-    type: Number,
-    required: true
-  }
-}, {timestamps: true});
+const PromocionesSchema = mongoose.Schema({
+    nombre: {
+        type: String,
+        required: true
+    },
+    descripcion: {
+        type: String,
+        required: true
+    },
+    fechaInicio: {
+        type: Date,
+        required: true
+    },
+    fechaFin: {
+        type: Date,
+        required: true
+    },
+    descuento: {
+        type: Number,
+        required: true
+    }
+});
 
-module.exports = mongoose.model('Promociones', PromocionSchema);
+module.exports = mongoose.model('Promociones', PromocionesSchema);

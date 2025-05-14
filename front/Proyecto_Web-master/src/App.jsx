@@ -3,10 +3,11 @@ import Navbar from './Components/Navbar'
 import Inicio from './Components/Inicio'
 import Reservas from './Components/Reservas'
 import Footer from './Components/Footer'
+import { CartProvider } from './Hooks/Carrito'; 
 
 
 
-function App() { 
+function App() {
 
   const [isReservasOpen, setReservasOpen] = useState(false);
 
@@ -14,12 +15,14 @@ function App() {
     setReservasOpen(!isReservasOpen);
   };
   return (
-    <>
-      <Navbar onReservasClick={handleReservasToggle} />
-      <Inicio/> 
-      {isReservasOpen && <Reservas isVisible={isReservasOpen} onClose={handleReservasToggle} />}
-      <Footer/> 
-    </>
+    <CartProvider>
+      <>
+        <Navbar onReservasClick={handleReservasToggle} />
+        <Inicio/>
+        {isReservasOpen && <Reservas isVisible={isReservasOpen} onClose={handleReservasToggle} />}
+        <Footer/>
+      </>
+    </CartProvider> 
   )
 }
 

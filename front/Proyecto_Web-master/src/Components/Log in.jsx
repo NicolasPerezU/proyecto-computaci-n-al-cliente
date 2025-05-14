@@ -1,14 +1,16 @@
 import { useState } from "react";
 import Error from "./Error";
 
-
-function Login({ isVisible, onClose, emailRegistrado, contraseñaRegistrada }) {
+// Add onLoginSuccess to the props
+function Login({ isVisible, onClose, onLoginSuccess }) {
 
     const [formData, setFormData] = useState({
         email: '',
-        contraseña: '',
+        password: '',
     });
     const [error, setError] = useState('');
+    const [successMessage, setSuccessMessage] = useState('');
+
 
     const handleChange = (e) => {
         setFormData({
@@ -17,32 +19,63 @@ function Login({ isVisible, onClose, emailRegistrado, contraseñaRegistrada }) {
         });
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!formData.email || !formData.contraseña) {
-            setError('Todos los campos son obligatorios');
-            return;
-        }
-        if (formData.email !== emailRegistrado || formData.contraseña !== contraseñaRegistrada) {
-            setError('Email o contraseña incorrectos');
-            return;
-        }
+
         setError('');
-        console.log('Iniciando sesión...');
-        handleCloseClose();
+        setSuccessMessage('');
+
+        if (!formData.email || !formData.password) {
+            setError('Email y contraseña son obligatorios');
+            return;
+        }
+
+        try {
+            const response = await fetch('http://localhost:3000/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: formData.email,
+                    password: formData.password,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                setSuccessMessage('Inicio de sesión exitoso.');
+                console.log('Inicio de sesión exitoso:', data);
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('usuario', JSON.stringify(data.usuario));
+
+                // Call the function passed from Navbar
+                if (onLoginSuccess) { // Check if the prop exists
+                    onLoginSuccess(); // <--- Call the function here
+                } else {
+                   onClose(); // If onLoginSuccess is not provided, just close the modal
+                }
+
+            } else {
+                setError(data.error || 'Error en el inicio de sesión.');
+                console.error('Error en el inicio de sesión:', data.error);
+            }
+        } catch (error) {
+            console.error('Error de red al iniciar sesión:', error);
+            setError('Error de conexión. Inténtalo de nuevo.');
+        }
     };
 
     const handleClose = () => {
         setError('');
+        setSuccessMessage('');
         setFormData({
             email: '',
-            contraseña: '',
+            password: '',
         });
         onClose();
     };
-
-
-
 
     return (
         isVisible && (
@@ -51,6 +84,8 @@ function Login({ isVisible, onClose, emailRegistrado, contraseñaRegistrada }) {
                     <h2 className="text-2xl font-bold mb-6 text-center">Iniciar Sesión</h2>
 
                     {error && <Error>{error}</Error>}
+                    {successMessage && <p className="text-green-500 text-center mb-4">{successMessage}</p>}
+
 
                     <div className="mb-4">
                         <label className="block text-gray-700 mb-2">Email</label>
@@ -68,8 +103,8 @@ function Login({ isVisible, onClose, emailRegistrado, contraseñaRegistrada }) {
                         <label className="block text-gray-700 mb-2">Contraseña</label>
                         <input
                             type="password"
-                            name="contraseña"
-                            value={formData.contraseña}
+                            name="password"
+                            value={formData.password}
                             onChange={handleChange}
                             className="w-full p-2 border border-gray-300 rounded-md"
                             required
@@ -90,4 +125,4 @@ function Login({ isVisible, onClose, emailRegistrado, contraseñaRegistrada }) {
     );
 }
 
-export default Login
+export default Login;

@@ -97,9 +97,10 @@ router.delete('/:id', verifyToken, async (req, res) => {
       return res.status(404).json({ error: "Reserva no encontrada." });
     }
 
-    if (reserva.userId.toString() !== req.user.userId) {
-      return res.status(403).json({ error: "No tienes permiso para eliminar esta reserva." });
-    }
+    if (reserva.userId.toString() !== req.user.userId.toString()) {
+  return res.status(403).json({ error: "No tienes permiso para eliminar esta reserva." });
+}
+
 
     await Reserva.findByIdAndDelete(reservaId);
     res.json({ message: "Reserva cancelada correctamente." });

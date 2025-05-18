@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Promociones = require('../models/Promociones');
 
-// Get all promotions
+
 router.get('/', async (req, res) => {
   try {
     const promociones = await Promociones.find();
@@ -12,7 +12,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get a single promotion by ID
+
 router.get('/:id', async (req, res) => {
   try {
     const promocion = await Promociones.findById(req.params.id);
@@ -25,7 +25,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Create a new promotion
+
 router.post('/', async (req, res) => {
   const promocion = new Promociones({
     nombre: req.body.nombre,
@@ -43,7 +43,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Update a promotion by ID
+
 router.patch('/:id', async (req, res) => {
   try {
     const promocion = await Promociones.findById(req.params.id);
@@ -74,7 +74,7 @@ router.patch('/:id', async (req, res) => {
   }
 });
 
-// Delete a promotion by ID
+
 router.delete('/:id', async (req, res) => {
   try {
     const promocion = await Promociones.findByIdAndDelete(req.params.id);

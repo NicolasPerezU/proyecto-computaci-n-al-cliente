@@ -36,6 +36,10 @@ app.use('/api/empleados', empleadosRoutes);
 const promocionesRoutes = require('./routes/promociones');
 app.use('/api/promociones', promocionesRoutes);
 
+const productosRoutes = require('./routes/producto');
+app.use('/api/productos', productosRoutes);
+
+
 app.get('/', (req, res) => {
   res.send('Backend funcionando correctamente');
 });

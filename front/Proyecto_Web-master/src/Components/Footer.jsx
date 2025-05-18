@@ -1,4 +1,4 @@
-import fondo from '../img/fondo.jpg'; // Asegúrate de que la imagen esté en la ruta correcta.
+import fondo from '../img/fondo.jpg'; 
 
 function Footer() {
   return (
@@ -6,7 +6,7 @@ function Footer() {
       className="relative bg-gray-900 text-gray-200 py-16"
       style={{ backgroundImage: `url(${fondo})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
     >
-      {/* Capa oscura con desenfoque */}
+      
       <div className="absolute inset-0 bg-black bg-opacity-80 filter blur-sm"></div> 
 
       <div className="relative container mx-auto text-center space-y-8">

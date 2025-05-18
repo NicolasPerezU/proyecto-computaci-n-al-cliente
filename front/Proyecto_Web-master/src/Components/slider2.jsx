@@ -4,7 +4,7 @@ import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 
-// Imágenes para el slider
+
 import car1 from '../img/carrusel1.jpg';
 import car2 from '../img/carrusel2.jpg';
 import car3 from '../img/carrusel3.jpg';

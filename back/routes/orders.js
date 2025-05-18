@@ -2,61 +2,105 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const Order = require('../models/Order');
 const router = express.Router();
+const mongoose = require('mongoose');
 
-const verifyToken = (req, res, next) => {
+const User = require('../models/User'); 
+
+const verifyToken = async (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (!authHeader) {
     return res.status(401).json({ error: "No token provided" });
   }
+
   const token = authHeader.split(" ")[1];
-  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-    if (err) return res.status(401).json({ error: "Invalid token" });
-    req.user = decoded;
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.userId);
+
+    if (!user) {
+      return res.status(401).json({ error: "Usuario no encontrado" });
+    }
+
+    req.user = {
+      userId: user._id,
+      role: user.rol,
+      email: user.email
+    };
+
     next();
-  });
+  } catch (err) {
+    return res.status(401).json({ error: "Token inválido o expirado" });
+  }
 };
 
-// Existing POST route (could be used for initial order creation or perhaps refactored)
+
+
 router.post('/', verifyToken, async (req, res) => {
   const { productos } = req.body;
 
   if (!productos || !Array.isArray(productos) || productos.length === 0) {
-    return res.status(400).json({ error: "El carrito debe contener al menos un producto." });
+    return res.status(400).json({ error: "El pedido debe contener al menos un producto." });
   }
 
   const total = productos.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
 
   try {
-    // Check if the user already has an active cart
-    let order = await Order.findOne({ userId: req.user.userId, estado: "carrito" });
-
-    if (order) {
-        // If a cart exists, you might want to merge or replace.
-        // For now, let's assume this route is primarily for initial creation,
-        // and add-to-cart handles subsequent additions.
-         return res.status(400).json({ error: "Ya existe un carrito activo para este usuario. Use la ruta /add-to-cart para añadir productos." });
-
-    } else {
-       // If no cart exists, create a new one
-        order = new Order({
-            userId: req.user.userId,
-            productos,
-            total,
-            estado: "carrito"
-        });
-
-        await order.save();
-        res.status(201).json({ message: "Carrito creado exitosamente.", orderId: order._id });
+    const carrito = await Order.findOne({ userId: req.user.userId, estado: "carrito" });
+    if (carrito) {
+      
+      carrito.productos = productos;
+      carrito.total = total;
+      carrito.estado = "pendiente";
+      await carrito.save();
+      return res.status(201).json(carrito); 
     }
 
+    const nuevaOrden = new Order({
+      userId: req.user.userId,
+      productos,
+      total,
+      estado: "pendiente"
+    });
+
+    await nuevaOrden.save();
+    res.status(201).json(nuevaOrden);
+
   } catch (error) {
-    console.error("Error al crear/obtener la orden:", error);
-    res.status(500).json({ error: "Error al crear/obtener la orden." });
+    console.error("Error al registrar la orden:", error);
+    res.status(500).json({ error: "Error al registrar la orden." });
   }
 });
 
 
-// New route to add a product to the cart
+router.get('/todas', verifyToken, async (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Acceso denegado. Solo administradores pueden ver todas las órdenes.' });
+  }
+
+  try {
+    const ordenes = await Order.find().sort({ createdAt: -1 }).populate('userId', 'nombres apellidos email');
+    res.json(ordenes);
+  } catch (error) {
+    console.error("Error al obtener todas las órdenes:", error);
+    res.status(500).json({ error: "Error al obtener todas las órdenes." });
+  }
+});
+
+
+router.get('/mis-ordenes', verifyToken, async (req, res) => {
+  try {
+    const ordenes = await Order.find({ userId: req.user.userId }).sort({ createdAt: -1 });
+    res.json(ordenes);
+  } catch (error) {
+    console.error("Error al obtener órdenes:", error);
+    res.status(500).json({ error: "Error al obtener las órdenes." });
+  }
+});
+
+
+
+
 router.post('/add-to-cart', verifyToken, async (req, res) => {
     const { productoId, nombre, precio, cantidad } = req.body;
 
@@ -68,7 +112,7 @@ router.post('/add-to-cart', verifyToken, async (req, res) => {
         let order = await Order.findOne({ userId: req.user.userId, estado: "carrito" });
 
         if (!order) {
-            // If no cart exists, create a new one
+            
             order = new Order({
                 userId: req.user.userId,
                 productos: [{ productoId, nombre, precio, cantidad }],
@@ -76,18 +120,18 @@ router.post('/add-to-cart', verifyToken, async (req, res) => {
                 estado: "carrito"
             });
         } else {
-            // If a cart exists, check if the product is already in it
+            
             const itemIndex = order.productos.findIndex(item => item.productoId === productoId);
 
             if (itemIndex > -1) {
-                // Product exists, update the quantity
+                
                 order.productos[itemIndex].cantidad += cantidad;
             } else {
-                // Product does not exist, add it as a new item
+                
                 order.productos.push({ productoId, nombre, precio, cantidad });
             }
 
-            // Recalculate the total for the updated cart
+            
             order.total = order.productos.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
         }
 
@@ -100,7 +144,7 @@ router.post('/add-to-cart', verifyToken, async (req, res) => {
     }
 });
 
-// New route to update the quantity of a product in the cart
+
 router.put('/update-item/:productId', verifyToken, async (req, res) => {
     const { productId } = req.params;
     const { cantidad } = req.body;
@@ -123,14 +167,14 @@ router.put('/update-item/:productId', verifyToken, async (req, res) => {
         }
 
         if (cantidad === 0) {
-            // If quantity is 0, remove the item
+            
             order.productos.splice(itemIndex, 1);
         } else {
-            // Otherwise, update the quantity
+            
             order.productos[itemIndex].cantidad = cantidad;
         }
 
-        // Recalculate the total
+        
         order.total = order.productos.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
 
         await order.save();
@@ -142,7 +186,7 @@ router.put('/update-item/:productId', verifyToken, async (req, res) => {
     }
 });
 
-// New route to remove a product from the cart
+
 router.delete('/remove-item/:productId', verifyToken, async (req, res) => {
     const { productId } = req.params;
 
@@ -161,7 +205,7 @@ router.delete('/remove-item/:productId', verifyToken, async (req, res) => {
         }
 
 
-        // Recalculate the total
+        
         order.total = order.productos.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
 
         await order.save();
@@ -174,12 +218,12 @@ router.delete('/remove-item/:productId', verifyToken, async (req, res) => {
 });
 
 
-// Existing GET route to get the current cart
+
 router.get('/', verifyToken, async (req, res) => {
   try {
     const order = await Order.findOne({ userId: req.user.userId, estado: "carrito" });
     if (!order) {
-        // Return an empty cart instead of 404 if no cart is found
+        
       return res.json({ userId: req.user.userId, productos: [], total: 0, estado: "carrito" });
     }
     res.json(order);
@@ -188,6 +232,91 @@ router.get('/', verifyToken, async (req, res) => {
     res.status(500).json({ error: "Error al obtener el carrito." });
   }
 });
+
+
+router.get('/ordenesUsuario', verifyToken, async (req, res) => {
+  try {
+    const ordenes = await Order.find({ userId: req.user.userId }).sort({ createdAt: -1 });
+    res.json(ordenes);
+  } catch (error) {
+    console.error("Error al obtener órdenes del usuario:", error);
+    res.status(500).json({ error: "Error al obtener las órdenes del usuario." });
+  }
+});
+
+router.put('/:orderId', verifyToken, async (req, res) => {
+  const { orderId } = req.params;
+  const { productos, estado } = req.body;
+
+  if (!mongoose.Types.ObjectId.isValid(orderId)) {
+    return res.status(400).json({ error: "ID de orden inválido" });
+  }
+
+  try {
+    const orden = await Order.findById(orderId);
+    
+    if (!orden) {
+      return res.status(404).json({ error: "Orden no encontrada" });
+    }
+
+    if (estado && req.user.role !== 'admin') {
+      return res.status(403).json({ error: "Solo administradores pueden cambiar el estado" });
+    }
+
+     // El dueño puede actualizar productos
+    if (productos && orden.userId.toString() !== req.user.userId.toString()) {
+      return res.status(403).json({ error: "No tienes permiso para editar esta orden" });
+    }
+
+    const estadosValidos = ['pendiente', 'completada', 'cancelada'];
+    if (estado && !estadosValidos.includes(estado)) {
+      return res.status(400).json({ error: "Estado no válido" });
+    }
+
+    if (productos) {
+      orden.productos = productos;
+      orden.total = productos.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
+    }
+    
+    if (estado) {
+      orden.estado = estado;
+    }
+
+    await orden.save();
+    res.json({ message: "Orden actualizada exitosamente", orden });
+
+  } catch (error) {
+    console.error("Error al actualizar orden:", error);
+    res.status(500).json({ error: "Error al actualizar orden" });
+  }
+});
+
+router.delete('/:orderId', verifyToken, async (req, res) => {
+  const { orderId } = req.params;
+    try {
+    const orden = await Order.findById({ _id: orderId }); 
+
+    if (!mongoose.Types.ObjectId.isValid(orderId)) {
+      return res.status(400).json({ error: "ID de orden inválido" });
+    }
+
+    if (!orden) {
+      return res.status(404).json({ error: "Orden no encontrada" });
+    }
+
+    // Permitir al admin o al dueño de la orden cancelarla
+    if (orden.userId.toString() !== req.user.userId.toString() && req.user.role !== 'admin') {
+      return res.status(403).json({ error: "No tienes permiso para cancelar esta orden" });
+    }
+
+    await Order.findByIdAndDelete({ _id: orderId });
+    res.json({ message: "Orden cancelada/eliminada correctamente" });
+  } catch (error) {
+    console.error("Error al cancelar la orden:", error);
+    res.status(500).json({ error: "Error al cancelar la orden" });
+  }
+});
+
 
 
 module.exports = router;

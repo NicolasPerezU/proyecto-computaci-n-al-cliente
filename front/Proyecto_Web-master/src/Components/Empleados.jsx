@@ -1,86 +1,221 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { FaEdit, FaTrash, FaPlus, FaTimes, FaCheck } from 'react-icons/fa';
 
-function Empleados() {
-  const [empleados, setEmpleados] = useState([]); // Estado para almacenar la lista de empleados
-  const [loading, setLoading] = useState(true); // Estado para indicar si los datos se están cargando
-  const [error, setError] = useState(null); // Estado para manejar errores
-  useEffect(() => {
-    const fetchEmpleados = async () => {
-      try {
-        // Realiza la solicitud GET a la ruta de tu back-end
-        // Asegúrate de que la URL y el puerto coincidan con tu configuración del back-end
-        const response = await fetch('http://localhost:3000/api/empleados'); // Usa el puerto 3000
+function Empleados({ empleados, onCreate, onUpdate, onDelete }) {
+   const [editandoId, setEditandoId] = useState(null);
+  const [mostrarFormulario, setMostrarFormulario] = useState(false);
+  const [formData, setFormData] = useState({
+    nombre: '',
+    puesto: '',
+    salario: '',
+    fechaContratacion: ''
+  });
+  const [error, setError] = useState('');
 
-        // Verifica si la respuesta fue exitosa (status 200-299)
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
 
-        const data = await response.json(); // Parsea la respuesta JSON
-        setEmpleados(data); // Actualiza el estado con los empleados
-        setLoading(false); // Indica que la carga ha terminado
-      } catch (error) {
-        console.error("Error fetching employees:", error);
-        setError(error); // Almacena el error en el estado
-        setLoading(false); // Indica que la carga ha terminado (con error)
-      }
+  const handleEditarClick = (empleado) => {
+    setEditandoId(empleado._id);
+    setFormData({
+      nombre: empleado.nombre,
+      puesto: empleado.puesto,
+      salario: empleado.salario.toString(),
+      fechaContratacion: empleado.fechaContratacion.split('T')[0]
+    });
+  };
+
+  const handleCancelarEdicion = () => {
+    setEditandoId(null);
+    setFormData({
+      nombre: '',
+      puesto: '',
+      salario: '',
+      fechaContratacion: ''
+    });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    const empleadoData = {
+      ...formData,
+      salario: parseFloat(formData.salario),
+      fechaContratacion: new Date(formData.fechaContratacion).toISOString()
     };
 
-    fetchEmpleados(); // Llama a la función para obtener los empleados cuando el componente se monte
-  }, []);
+    try {
+      let result;
+      if (editandoId) {
+        result = await onUpdate(editandoId, empleadoData);
+      } else {
+        result = await onCreate(empleadoData);
+      }
 
-  // Renderizado condicional basado en el estado
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-screen bg-gray-950 text-white"> {/* Fondo oscuro y texto blanco */}
-        <div className="text-xl font-semibold">Cargando empleados...</div>
-      </div>
-    );
-  }
+      if (result.success) {
+        setEditandoId(null);
+        setMostrarFormulario(false);
+        setFormData({
+          nombre: '',
+          puesto: '',
+          salario: '',
+          fechaContratacion: ''
+        });
+      } else {
+        setError(result.error);
+      }
+    } catch (err) {
+      setError(err.message || 'Ocurrió un error');
+    }
+  };
 
-  if (error) {
-    return (
-      <div className="flex justify-center items-center h-screen bg-gray-950 text-red-500"> {/* Fondo oscuro y texto de error rojo */}
-        <div className="text-xl font-semibold">Error al cargar los empleados: {error.message}</div>
-      </div>
-    );
-  }
+  const handleEliminar = async (id) => {
+    if (window.confirm('¿Estás seguro de eliminar este empleado?')) {
+      const result = await onDelete(id);
+      if (!result.success) {
+        setError(result.error);
+      }
+    }
+  };
 
   return (
-    <div id="Empleados" className="container mx-auto p-8 bg-gray-920 shadow-lg rounded-lg my-10 text-white"> {/* Contenedor con fondo oscuro, sombra, bordes redondeados y margen */}
-      <h1 className="text-4xl font-extrabold uppercase mb-8 text-center text-white">Nuestro Personal</h1> {/* Título con estilo similar al de "Sobre Nosotros" */}
+    <div className="mb-8">
+      {error && <div className="mb-4 p-2 bg-red-600 text-white rounded">{error}</div>}
 
-      {/* Botón para agregar nuevo empleado */}
-       {/* <div className="text-center mb-6"> {/* Margen ajustado */}
-          {/* <button className="bg-orange-700 hover:bg-orange-800 text-white font-bold py-3 px-6 rounded-lg transition duration-300 shadow-md"> */}
-              {/* Agregar Nuevo Empleado */}
-          {/* </button> */}
-      {/* </div> */}
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-xl font-semibold">Lista de Empleados</h3>
+        <button
+          onClick={() => {
+            setMostrarFormulario(!mostrarFormulario);
+            setEditandoId(null);
+          }}
+          className="flex items-center px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-white"
+        >
+          {mostrarFormulario ? <FaTimes className="mr-1" /> : <FaPlus className="mr-1" />}
+          {mostrarFormulario ? 'Cancelar' : 'Nuevo Empleado'}
+        </button>
+      </div>
 
-      {/* Tabla para mostrar la lista de empleados */}
-      {empleados.length > 0 ? (
-        <div className="overflow-x-auto border border-yellow-700 rounded-lg"> {/* Borde con color de destaque */}
-          <table className="min-w-full divide-y divide-gray-700"><thead className="bg-gray-800"><tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Nombre</th> {/* Texto gris claro para el encabezado */}
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Puesto</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Salario</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Fecha de Contratación</th>
-                 {/* <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Acciones</th> */} {/* Comentado el encabezado de Acciones */}
-              </tr></thead><tbody className="bg-gray-900 divide-y divide-gray-700">
-              {empleados.map((empleado, index) => (
-                <tr key={empleado._id} className={index % 2 === 0 ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-900 hover:bg-gray-800'}><td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">{empleado.nombre}</td> {/* Texto blanco */}<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{empleado.puesto}</td> {/* Texto gris claro */}<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{parseFloat(empleado.salario).toFixed(2)}</td> {/* Asegura que sea un número antes de formatear */}<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{new Date(empleado.fechaContratacion).toLocaleDateString()}</td> {/* Formatea la fecha, texto gris claro */}
-                  {/* Celdas para acciones */}
-                   {/* <td className="px-6 py-4 whitespace-nowrap text-sm font-medium"> */}
-                    {/* <a href="#" className="text-blue-400 hover:text-blue-300 mr-4">Editar</a> */} {/* Enlaces de acción con estilo azul claro */}
-                    {/* <a href="#" className="text-red-400 hover:text-red-300">Eliminar</a> */} {/* Enlaces de acción con estilo rojo claro */}
-                  {/* </td> */} {/* Comentada la celda de Acciones */}
-                </tr>
-              ))}
-            </tbody></table>
-        </div>
-      ) : (
-        <p className="text-center text-gray-400 text-lg mt-8">No hay empleados disponibles.</p>
+      {(mostrarFormulario || editandoId) && (
+        <form onSubmit={handleSubmit} className="mb-6 p-4 bg-gray-800 rounded-lg">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-sm mb-1">Nombre:</label>
+              <input
+                type="text"
+                name="nombre"
+                value={formData.nombre}
+                onChange={handleInputChange}
+                className="w-full p-2 bg-gray-700 rounded"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm mb-1">Puesto:</label>
+              <input
+                type="text"
+                name="puesto"
+                value={formData.puesto}
+                onChange={handleInputChange}
+                className="w-full p-2 bg-gray-700 rounded"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm mb-1">Salario:</label>
+              <input
+                type="number"
+                name="salario"
+                value={formData.salario}
+                onChange={handleInputChange}
+                className="w-full p-2 bg-gray-700 rounded"
+                step="0.01"
+                min="0"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm mb-1">Fecha de Contratación:</label>
+              <input
+                type="date"
+                name="fechaContratacion"
+                value={formData.fechaContratacion}
+                onChange={handleInputChange}
+                className="w-full p-2 bg-gray-700 rounded"
+                required
+              />
+            </div>
+          </div>
+          <div className="flex justify-end space-x-2">
+            {editandoId && (
+              <button
+                type="button"
+                onClick={handleCancelarEdicion}
+                className="px-3 py-1 bg-gray-600 hover:bg-gray-700 rounded text-white flex items-center"
+              >
+                <FaTimes className="mr-1" /> Cancelar
+              </button>
+            )}
+            <button
+              type="submit"
+              className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-white flex items-center"
+            >
+              <FaCheck className="mr-1" /> {editandoId ? 'Actualizar' : 'Guardar'}
+            </button>
+          </div>
+        </form>
       )}
+
+      <div className="overflow-x-auto">
+        <table className="min-w-full bg-gray-800 rounded-lg overflow-hidden">
+          <thead className="bg-gray-700">
+            <tr>
+              <th className="px-4 py-2 text-left">Nombre</th>
+              <th className="px-4 py-2 text-left">Puesto</th>
+              <th className="px-4 py-2 text-left">Salario</th>
+              <th className="px-4 py-2 text-left">Fecha Contratación</th>
+              <th className="px-4 py-2 text-left">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {Empleados.length === 0 ? (
+              <tr>
+                <td colSpan="5" className="px-4 py-2 text-center text-gray-400">No hay empleados registrados</td>
+              </tr>
+            ) : (
+              empleados.map(empleado => (
+                <tr key={empleado._id} className="border-t border-gray-700 hover:bg-gray-750">
+                  <td className="px-4 py-2">{empleado.nombre}</td>
+                  <td className="px-4 py-2">{empleado.puesto}</td>
+                  <td className="px-4 py-2">${parseFloat(empleado.salario).toFixed(2)}</td>
+                  <td className="px-4 py-2">{new Date(empleado.fechaContratacion).toLocaleDateString()}</td>
+                  <td className="px-4 py-2">
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handleEditarClick(empleado)}
+                        className="p-1 text-blue-400 hover:text-blue-300"
+                        title="Editar"
+                      >
+                        <FaEdit />
+                      </button>
+                      <button
+                        onClick={() => handleEliminar(empleado._id)}
+                        className="p-1 text-red-400 hover:text-red-300"
+                        title="Eliminar"
+                      >
+                        <FaTrash />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

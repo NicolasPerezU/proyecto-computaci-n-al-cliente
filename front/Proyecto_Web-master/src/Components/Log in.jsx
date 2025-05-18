@@ -1,7 +1,7 @@
 import { useState } from "react";
 import Error from "./Error";
 
-// Add onLoginSuccess to the props
+
 function Login({ isVisible, onClose, onLoginSuccess }) {
 
     const [formData, setFormData] = useState({
@@ -50,11 +50,11 @@ function Login({ isVisible, onClose, onLoginSuccess }) {
                 localStorage.setItem('token', data.token);
                 localStorage.setItem('usuario', JSON.stringify(data.usuario));
 
-                // Call the function passed from Navbar
-                if (onLoginSuccess) { // Check if the prop exists
-                    onLoginSuccess(); // <--- Call the function here
+                
+                if (onLoginSuccess) { 
+                    onLoginSuccess(); 
                 } else {
-                   onClose(); // If onLoginSuccess is not provided, just close the modal
+                   onClose(); 
                 }
 
             } else {
@@ -115,7 +115,7 @@ function Login({ isVisible, onClose, onLoginSuccess }) {
                         <button type="submit" className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition duration-300">
                             Iniciar Sesión
                         </button>
-                        <button type="button" onClick={handleClose} className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition duration-300 ml-4">
+                        <button type="button" onClick={handleClose} className="bg-red-600 text-white px-6 py-2 rounded-md hover:bg-red-700 transition duration-300 ml-4">
                             Cerrar
                         </button>
                     </div>

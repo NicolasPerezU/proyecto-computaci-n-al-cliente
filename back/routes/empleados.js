@@ -1,40 +1,36 @@
 const express = require('express');
 const router = express.Router();
-const Empleados = require('../models/Empleados');
+const Empleado = require('../models/Empleados');
+const { authenticateJWT, authorizeAdmin } = require('../jwt/logic');
 
-// Get all employees
+// Aplicar middleware a todas las rutas
+router.use(authenticateJWT, authorizeAdmin);
+
+// Obtener todos los empleados
 router.get('/', async (req, res) => {
   try {
-    const empleados = await Empleados.find();
+    const empleados = await Empleado.find().sort({ fechaContratacion: -1 });
     res.json(empleados);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-// Get a single employee by ID
-router.get('/:id', async (req, res) => {
-  try {
-    const empleado = await Empleados.findById(req.params.id);
-    if (empleado == null) {
-      return res.status(404).json({ message: 'Cannot find employee' });
-    }
-    res.json(empleado);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// Create a new employee
+// Crear nuevo empleado
 router.post('/', async (req, res) => {
-  const empleado = new Empleados({
-    nombre: req.body.nombre,
-    puesto: req.body.puesto,
-    salario: req.body.salario,
-    fechaContratacion: req.body.fechaContratacion
-  });
-
   try {
+    // Validación básica
+    if (!req.body.nombre || !req.body.puesto || !req.body.salario) {
+      return res.status(400).json({ message: 'Nombre, puesto y salario son requeridos' });
+    }
+
+    const empleado = new Empleado({
+      nombre: req.body.nombre,
+      puesto: req.body.puesto,
+      salario: req.body.salario,
+      fechaContratacion: req.body.fechaContratacion || new Date()
+    });
+
     const nuevoEmpleado = await empleado.save();
     res.status(201).json(nuevoEmpleado);
   } catch (err) {
@@ -42,44 +38,36 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Update an employee by ID
+// Actualizar empleado
 router.patch('/:id', async (req, res) => {
   try {
-    const empleado = await Empleados.findById(req.params.id);
-    if (empleado == null) {
-      return res.status(404).json({ message: 'Cannot find employee' });
+    const empleado = await Empleado.findById(req.params.id);
+    if (!empleado) {
+      return res.status(404).json({ message: 'Empleado no encontrado' });
     }
 
-    if (req.body.nombre != null) {
-      empleado.nombre = req.body.nombre;
-    }
-    if (req.body.puesto != null) {
-      empleado.puesto = req.body.puesto;
-    }
-    if (req.body.salario != null) {
-      empleado.salario = req.body.salario;
-    }
-    if (req.body.fechaContratacion != null) {
-      empleado.fechaContratacion = req.body.fechaContratacion;
-    }
+    if (req.body.nombre) empleado.nombre = req.body.nombre;
+    if (req.body.puesto) empleado.puesto = req.body.puesto;
+    if (req.body.salario) empleado.salario = req.body.salario;
+    if (req.body.fechaContratacion) empleado.fechaContratacion = req.body.fechaContratacion;
 
-    const updatedEmpleado = await empleado.save();
-    res.json(updatedEmpleado);
+    const empleadoActualizado = await empleado.save();
+    res.json(empleadoActualizado);
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
 });
 
-// Delete an employee by ID
+// Eliminar empleado
 router.delete('/:id', async (req, res) => {
   try {
-    const empleado = await Empleados.findById(req.params.id);
-    if (empleado == null) {
-      return res.status(404).json({ message: 'Cannot find employee' });
+    const empleado = await Empleado.findById(req.params.id);
+    if (!empleado) {
+      return res.status(404).json({ message: 'Empleado no encontrado' });
     }
 
-    await empleado.remove();
-    res.json({ message: 'Deleted employee' });
+    await empleado.deleteOne();
+    res.json({ message: 'Empleado eliminado correctamente' });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

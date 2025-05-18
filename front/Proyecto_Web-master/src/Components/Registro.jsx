@@ -11,7 +11,7 @@ function Registro({ isVisible, onClose }) {
         confirmarpassword: '',
     });
     const [error, setError] = useState('');
-    const [successMessage, setSuccessMessage] = useState(''); // Added for success message
+    const [successMessage, setSuccessMessage] = useState(''); 
 
     const handleChange = (e) => {
         setFormData({
@@ -20,10 +20,10 @@ function Registro({ isVisible, onClose }) {
         });
     };
 
-    const handleSubmit = async (e) => { // Made the function async
+    const handleSubmit = async (e) => { 
         e.preventDefault();
 
-        // Reset messages
+        
         setError('');
         setSuccessMessage('');
 
@@ -38,7 +38,7 @@ function Registro({ isVisible, onClose }) {
         }
 
         try {
-            const response = await fetch('http://localhost:3000/api/auth/register', { // **Modified URL**
+            const response = await fetch('http://localhost:3000/api/auth/register', { 
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -54,10 +54,10 @@ function Registro({ isVisible, onClose }) {
             const data = await response.json();
 
             if (response.ok) {
-                // Registration successful
-                setSuccessMessage(data.message || 'Usuario registrado exitosamente.'); // Use message from backend
+                
+                setSuccessMessage(data.message || 'Usuario registrado exitosamente.'); 
                 console.log('Usuario registrado exitosamente:', data);
-                // Optionally clear form or redirect after a delay
+                
                 setFormData({
                     nombres: '',
                     apellidos: '',
@@ -65,10 +65,10 @@ function Registro({ isVisible, onClose }) {
                     password: '',
                     confirmarpassword: '',
                 });
-                 // onClose(); // You might want to keep the modal open to show the success message
+                 
             } else {
-                // Error in registration
-                setError(data.error || 'Error en el registro.'); // Use error message from backend
+                
+                setError(data.error || 'Error en el registro.'); 
                 console.error('Error en el registro:', data.error);
             }
         } catch (error) {
@@ -79,7 +79,7 @@ function Registro({ isVisible, onClose }) {
 
     const handleClose = () => {
         setError('');
-        setSuccessMessage(''); // Also clear success message on close
+        setSuccessMessage(''); 
         setFormData({
             email: '',
             password: '',
@@ -94,7 +94,7 @@ function Registro({ isVisible, onClose }) {
                     <h2 className="text-2xl font-bold mb-6 text-center">Registro</h2>
 
                     {error && <Error>{error}</Error>}
-                    {successMessage && <p className="text-green-500 text-center mb-4">{successMessage}</p>} {/* Display success message */}
+                    {successMessage && <p className="text-green-500 text-center mb-4">{successMessage}</p>} 
 
                     <div className="mb-4">
                         <label className="block text-gray-700 mb-2">Nombres</label>
@@ -136,7 +136,7 @@ function Registro({ isVisible, onClose }) {
                         <label className="block text-gray-700 mb-2">Contraseña</label>
                         <input
                             type="password"
-                            name="password" // Ensure this matches the backend
+                            name="password" 
                             value={formData.password}
                             onChange={handleChange}
                             className="w-full p-2 border border-gray-300 rounded-md"
@@ -160,7 +160,7 @@ function Registro({ isVisible, onClose }) {
                         <button type="submit" className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition duration-300">
                             Registrarse
                         </button>
-                        <button type="button" onClick={handleClose} className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition duration-300 ml-4">
+                        <button type="button" onClick={handleClose} className="bg-red-600 text-white px-6 py-2 rounded-md hover:bg-red-700 transition duration-300 ml-4">
                             Cerrar
                         </button>
                     </div>
